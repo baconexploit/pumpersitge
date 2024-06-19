@@ -177,4 +177,5 @@ def make_video():
     return jsonify({'audio_file': output_audio, 'video_file': final_output_video})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
