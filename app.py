@@ -23,7 +23,7 @@ KEY_FILE = 'google_credentials.json'
 
 # Google Cloud Storage client
 storage_client = storage.Client.from_service_account_json(KEY_FILE)
-bucket_name = 'pumpervids'
+bucket_name = 'pumpervidss'
 
 # Function to download files from Google Cloud Storage
 def download_blob(bucket_name, source_blob_name, destination_file_name):
