@@ -80,21 +80,28 @@ def synthesize_text(text, output_file):
         out.write(response.audio_content)
 
 def combine_audio_video(audio_file, video_file, background_music_file, output_file):
-    video = mp.VideoFileClip(video_file)
-    audio = mp.AudioFileClip(audio_file)
-    background_music = mp.AudioFileClip(background_music_file).volumex(0.1)  # Set the volume of the background music to 10%
+    try:
+        video = mp.VideoFileClip(video_file)
+        audio = mp.AudioFileClip(audio_file)
+        background_music = mp.AudioFileClip(background_music_file).volumex(0.1)  # Set the volume of the background music to 10%
 
-    # Ensure the background music is as long as the audio file
-    background_music = background_music.set_duration(audio.duration)
+        # Ensure the background music is as long as the audio file
+        background_music = background_music.set_duration(audio.duration)
 
-    # Combine the synthesized audio with the background music
-    final_audio = mp.CompositeAudioClip([audio, background_music])
+        # Combine the synthesized audio with the background music
+        final_audio = mp.CompositeAudioClip([audio, background_music])
 
-    # Ensure video is as long as the audio file, with a tolerance of 1-2 seconds
-    end_time = min(video.duration, final_audio.duration + 2)
-    trimmed_video = video.subclip(0, end_time).set_audio(final_audio)
+        # Ensure video is as long as the audio file, with a tolerance of 1-2 seconds
+        end_time = min(video.duration, final_audio.duration + 2)
+        trimmed_video = video.subclip(0, end_time).set_audio(final_audio)
 
-    trimmed_video.write_videofile(output_file, codec='libx264', audio_codec='aac')
+        # Write video file with detailed logging
+        trimmed_video.write_videofile(output_file, codec='libx264', audio_codec='aac', logger='bar')
+
+    except Exception as e:
+        traceback.print_exc()
+        print(f"Error in combine_audio_video: {str(e)}")
+        raise e
 
 def transcribe_audio(audio_file):
     client = speech.SpeechClient.from_service_account_json(KEY_FILE)
