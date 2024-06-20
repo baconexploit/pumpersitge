@@ -6,6 +6,7 @@ from google.cloud import storage
 import moviepy.editor as mp
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip, AudioFileClip
 import os
+import traceback
 
 app = Flask(__name__)
 
