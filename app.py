@@ -2,6 +2,7 @@ from flask import Flask, request, render_template, jsonify
 import praw
 from google.cloud import texttospeech
 from google.cloud import speech_v1p1beta1 as speech
+from google.cloud import storage
 import moviepy.editor as mp
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip, AudioFileClip
 import os
@@ -9,19 +10,40 @@ import os
 app = Flask(__name__)
 
 # Reddit API credentials
-client_id = 'BaHAdrd4l_pQJeFtn5486w'
-client_secret = 'i5psiZ_fuMuf7enEuyYRXdHqpNNNHg'
-user_agent = 'Pumper'
+client_id = os.environ.get('REDDIT_CLIENT_ID')
+client_secret = os.environ.get('REDDIT_CLIENT_SECRET')
+user_agent = os.environ.get('REDDIT_USER_AGENT')
 
 # Google Text-to-Speech API credentials
-KEY_FILE = 'C:/Users/beau/Documents/Pumpersite/pumper-425420-bf7c6e362fc6.json'
+google_credentials_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+if google_credentials_json:
+    with open('google_credentials.json', 'w') as f:
+        f.write(google_credentials_json)
+KEY_FILE = 'google_credentials.json'
+
+# Google Cloud Storage client
+storage_client = storage.Client.from_service_account_json(KEY_FILE)
+bucket_name = 'pumpervids'
+
+# Function to download files from Google Cloud Storage
+def download_blob(bucket_name, source_blob_name, destination_file_name):
+    """Downloads a blob from the bucket."""
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    blob.download_to_filename(destination_file_name)
+    print(f"Blob {source_blob_name} downloaded to {destination_file_name}.")
 
 # Paths to media files
-BACKGROUND_MUSIC_FILE = 'C:/Users/beau/Documents/Pumpersite/ScaryMusic.mp3'
+BACKGROUND_MUSIC_FILE = 'ScaryMusic.mp3'
 VIDEO_FILES = {
-    'MC.mp4': 'C:/Users/beau/Documents/Pumpersite/MC.mp4',
-    'CookingVid.mp4': 'C:/Users/beau/Documents/Pumpersite/CookingVid.mp4'
+    'MC.mp4': 'MC.mp4',
+    'CookingVid.mp4': 'CookingVid.mp4'
 }
+
+# Download necessary files
+download_blob(bucket_name, 'ScaryMusic.mp3', BACKGROUND_MUSIC_FILE)
+download_blob(bucket_name, 'MC.mp4', VIDEO_FILES['MC.mp4'])
+download_blob(bucket_name, 'CookingVid.mp4', VIDEO_FILES['CookingVid.mp4'])
 
 # Create a Reddit instance
 reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
@@ -86,7 +108,7 @@ def transcribe_audio(audio_file):
         enable_word_time_offsets=True,
     )
     response = client.recognize(config=config, audio=audio)
-    
+
     words_info = []
     for result in response.results:
         alternative = result.alternatives[0]
@@ -167,14 +189,13 @@ def make_video():
     output_audio = 'static/story.mp3'
     output_video = 'static/final_story_video.mp4'
     final_output_video = 'static/final_story_video_with_captions.mp4'
-    video_file_path = VIDEO_FILES.get(background_video)
 
     synthesize_text(full_story_text, output_audio)
+    combine_audio_video(output_audio, VIDEO_FILES[background_video], BACKGROUND_MUSIC_FILE, output_video)
     words_info = transcribe_audio(output_audio)
-    combine_audio_video(output_audio, video_file_path, BACKGROUND_MUSIC_FILE, output_video)
     add_text_captions(output_video, words_info, final_output_video)
 
-    return jsonify({'audio_file': output_audio, 'video_file': final_output_video})
+    return jsonify({'video_url': final_output_video})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
