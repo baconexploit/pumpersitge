@@ -122,7 +122,7 @@ def transcribe_audio(audio_file):
 
 def add_text_captions(video_file, words_info, output_file):
     video = VideoFileClip(video_file)
-    font_path = 'C:/Users/beau/Documents/Pumpersite/fonts/Gilroy-ExtraBold.otf'  # Adjust this path as needed
+    font_path = 'fonts/Gilroy-ExtraBold.otf'  # Adjust this path as needed
 
     text_clips = []
     current_clip_start = None
